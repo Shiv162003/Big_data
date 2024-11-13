@@ -1,4 +1,3 @@
-Sure! Here's a structured project report for your flight delay analysis, including the steps taken, methodology, and the involvement of your team members:
 
 ---
 
