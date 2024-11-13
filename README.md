@@ -76,7 +76,6 @@ We calculated the **average delay** for each of the categories (`CARRIER_DELAY`,
 To predict whether a flight will be delayed or not, we built a classification model using the following steps:
 1. **Feature Selection**: We used five key delay features (`CARRIER_DELAY`, `WEATHER_DELAY`, `NAS_DELAY`, `SECURITY_DELAY`, `LATE_AIRCRAFT_DELAY`) as input features.
 2. **Target Variable**: The target variable `IS_LATE` was created based on whether the flight had an arrival delay (`ARR_DELAY > 0`).
-3. **Data Transformation**: The selected features were standardized using `StandardScaler` to normalize the dataset.
 4. **Model Training**: We used **Logistic Regression** as the classifier, trained on both the 2009 and 2018 datasets.
 
 The code to create the model and train it is as follows:
