@@ -1,152 +1,40 @@
-To perform a **comparative analysis** between using PySpark and a traditional Python (non-Spark) approach for your real-time stock price analytics and prediction system, we need to build both implementations. Here's how you can structure the analysis:
+## link -https://www.kaggle.com/datasets/yuanyuwendymu/airline-delay-and-cancellation-data-2009-2018/data
 
----
+### Dataset Description: Airline Delay and Cancellation Data (2009-2018)
 
-### **1. Goals of the Comparative Analysis**
-- Compare the **runtime performance** (execution time for key tasks).
-- Evaluate the **ease of scaling** for larger datasets.
-- Measure differences in **model accuracy** and **predictions**.
-- Compare ease of **code implementation** and flexibility for additional features.
+This dataset, compiled by the Bureau of Transportation Statistics, contains detailed information on airline delays and cancellations in the United States from January 2009 to December 2018. It covers various flight-related metrics, allowing for extensive analysis of patterns in delays, cancellations, and factors affecting airline performance. 
 
----
+#### Key Features:
 
-### **2. Plan**
-1. Implement the workflow in **PySpark**.
-2. Implement the same workflow in **Pandas + Scikit-learn** (no Spark).
-3. Use the same dataset and preprocessing steps.
-4. Evaluate both approaches on:
-   - Data preprocessing time.
-   - Model training and prediction time.
-   - Resource consumption and scaling.
-   - Accuracy metrics.
+1. **Year, Month, Day of Month, Day of Week**: These columns provide the specific dates of flights, allowing for time-based analyses and exploration of seasonality trends in delays and cancellations.
+  
+2. **Flight Number, Tail Number**: Unique identifiers for flights and aircraft, which can help track aircraft-specific trends over time.
 
----
+3. **Airline Code**: A code representing the airline, useful for analyzing delays and cancellations by airline.
 
-### **3. Implementation**
+4. **Origin and Destination Airports**: Airports for departure and arrival, along with their codes, allowing spatial analyses and insights into airport-specific delay patterns.
 
-#### **Using PySpark**
-(This is your existing code, with performance tracking added.)
-```python
-import time
-from pyspark.sql import SparkSession
-from pyspark.sql.window import Window
-import pyspark.sql.functions as F
-from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.evaluation import BinaryClassificationEvaluator
+5. **Departure and Arrival Times**: Scheduled and actual departure and arrival times provide insights into the extent of delays.
 
-# Start timer for PySpark
-start_time_spark = time.time()
+6. **Departure and Arrival Delays**: Information on delay duration, categorized by departure and arrival, aiding in the identification of delay patterns and causes.
 
-# Load SparkSession
-spark = SparkSession.builder.appName("RealTimeAnalytics").getOrCreate()
+7. **Cancellation Code**: If a flight is canceled, this code indicates the reason (such as weather, airline, national air system, or security).
 
-# Load and preprocess data
-spark_df = spark.read.csv('/content/TWITTER.csv', header=True, inferSchema=True)
-spark_df = spark_df.withColumn("Date", F.to_date("Date"))
-spark_df = spark_df.fillna(method="ffill")
+8. **Distance**: The distance traveled by each flight, which can be used to understand the impact of flight distance on delays and cancellations.
 
-# Add rolling average
-window_spec = Window.orderBy("Date").rowsBetween(-5, 0)
-spark_df = spark_df.withColumn("rolling_avg", F.avg("Close").over(window_spec))
+9. **Taxi In and Taxi Out Times**: These indicate the time spent on the ground, which may contribute to total delay times.
 
-# Feature engineering
-assembler = VectorAssembler(inputCols=["Close"], outputCol="features")
-assembled_df = assembler.transform(spark_df)
+10. **Diversion Status**: Specifies if a flight was diverted to another airport.
 
-# Create target variable
-assembled_df = assembled_df.withColumn(
-    "target",
-    F.when(F.col("Close") > F.lag("Close").over(Window.orderBy("Date")), 1).otherwise(0)
-)
+#### Potential Analyses:
 
-# Split data
-train_data, test_data = assembled_df.randomSplit([0.8, 0.2], seed=1234)
+- **Delay Patterns by Airline**: Identify which airlines have higher delay rates and explore potential reasons.
+- **Seasonal Trends**: Investigate how delays vary by month or season, possibly due to weather or holiday travel.
+- **Airport Performance**: Examine delays at specific airports, which may help identify congested or less efficient airports.
+- **Cancellation Causes**: Understand common reasons for cancellations to analyze airline performance and reliability.
+  
+This dataset is valuable for understanding airline operational performance and for developing predictive models for delays and cancellations. It can also support broader analyses on the impact of weather, seasonality, and operational factors on airline punctuality.
 
-# Train model
-lr = LogisticRegression(featuresCol="features", labelCol="target")
-lr_model = lr.fit(train_data)
+--- 
 
-# Make predictions
-predictions = lr_model.transform(test_data)
-
-# Evaluate
-evaluator = BinaryClassificationEvaluator(labelCol="target")
-spark_accuracy = evaluator.evaluate(predictions)
-
-# Stop timer for PySpark
-spark_time = time.time() - start_time_spark
-print(f"PySpark Accuracy: {spark_accuracy}, Runtime: {spark_time} seconds")
-```
-
----
-
-#### **Using Pandas + Scikit-learn**
-```python
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-import time
-
-# Start timer for Pandas
-start_time_pandas = time.time()
-
-# Load and preprocess data
-df = pd.read_csv('/content/TWITTER.csv')
-df['Date'] = pd.to_datetime(df['Date'])
-df.fillna(method='ffill', inplace=True)
-
-# Add rolling average
-df['rolling_avg'] = df['Close'].rolling(window=5).mean()
-
-# Create target variable
-df['target'] = np.where(df['Close'] > df['Close'].shift(1), 1, 0)
-
-# Drop NaN rows caused by rolling average
-df.dropna(inplace=True)
-
-# Train-test split
-X = df[['Close']]
-y = df['target']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1234)
-
-# Train model
-model = LogisticRegression()
-model.fit(X_train, y_train)
-
-# Make predictions
-predictions = model.predict(X_test)
-
-# Evaluate
-pandas_accuracy = accuracy_score(y_test, predictions)
-
-# Stop timer for Pandas
-pandas_time = time.time() - start_time_pandas
-print(f"Pandas Accuracy: {pandas_accuracy}, Runtime: {pandas_time} seconds")
-```
-
----
-
-### **4. Evaluate Differences**
-After running both implementations, compare:
-
-| Metric                        | PySpark                | Pandas/Scikit-learn     |
-|-------------------------------|------------------------|-------------------------|
-| **Runtime**                   | `spark_time`           | `pandas_time`           |
-| **Model Accuracy**            | `spark_accuracy`       | `pandas_accuracy`       |
-| **Scalability**               | Handles large datasets | Limited to memory size  |
-| **Ease of Implementation**    | Complex (distributed)  | Simple (local execution)|
-| **Resource Consumption**      | High (cluster setup)   | Low (single machine)    |
-| **Batch/Streaming Support**   | Native support         | Requires extra coding   |
-
----
-
-### **5. Insights**
-- **PySpark** is ideal for **large-scale data** or real-time streaming workflows, but it may have a steeper learning curve and higher setup overhead.
-- **Pandas + Scikit-learn** is faster and simpler for **small to medium datasets**, but scalability is limited by system memory.
-- Use PySpark for production-scale systems where scalability and distributed processing are critical.
-- Use Pandas for local analysis and quick prototyping.
-
-Would you like to visualize the runtime or accuracy comparison further?
+Let me know if you’d like further customization or additional details!
