@@ -7,7 +7,7 @@
 - Sanskar
 - Shivansh
 - Riya
-- Joshwa
+- Joshua
 
 ---
 
